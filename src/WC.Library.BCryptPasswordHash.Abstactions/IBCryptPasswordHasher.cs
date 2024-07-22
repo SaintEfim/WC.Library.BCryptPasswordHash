@@ -2,6 +2,10 @@
 
 public interface IBCryptPasswordHasher
 {
-    public string Hash(string data);
-    public bool Verify(string data, string hashedData);
+    public string Hash(
+        string data);
+
+    public bool Verify(
+        string data,
+        string hashedData);
 }

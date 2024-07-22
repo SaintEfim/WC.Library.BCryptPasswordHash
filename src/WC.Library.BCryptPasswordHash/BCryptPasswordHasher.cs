@@ -6,20 +6,27 @@ public class BCryptPasswordHasher : IBCryptPasswordHasher
 {
     private readonly ILogger<BCryptPasswordHasher> _logger;
 
-    public BCryptPasswordHasher(ILogger<BCryptPasswordHasher> logger)
+    public BCryptPasswordHasher(
+        ILogger<BCryptPasswordHasher> logger)
     {
         _logger = logger;
     }
 
-    public string Hash(string data)
+    public string Hash(
+        string data)
     {
-        if (!string.IsNullOrEmpty(data)) return BCrypt.Net.BCrypt.EnhancedHashPassword(data, workFactor: 12);
+        if (!string.IsNullOrEmpty(data))
+        {
+            return BCrypt.Net.BCrypt.EnhancedHashPassword(data, 12);
+        }
+
         _logger.LogError("Parameter must not be null or empty.");
         throw new ArgumentException("Data must not be null or empty.", nameof(data));
-
     }
 
-    public bool Verify(string data, string hashedData)
+    public bool Verify(
+        string data,
+        string hashedData)
     {
         if (string.IsNullOrEmpty(data))
         {
