@@ -36,10 +36,10 @@ jobs:
           echo "New version for $PACKAGE_ID: $NEW_VERSION"
           echo "bcrypt_version=$NEW_VERSION" >> $GITHUB_ENV
 
-      - name: Get latest version for WC.Library.BCryptPasswordHash.Abstractions
-        id: get-version-abstractions
+      - name: Get latest version for WC.Library.BCryptPasswordHash.Abstrctions
+        id: get-version-Abstrctions
         run: |
-          PACKAGE_ID="wc.library.bcryptpasswordhash.abstractions"
+          PACKAGE_ID="wc.library.bcryptpasswordhash.abstactions"
           PACKAGE_VERSION=$(curl -s https://api.nuget.org/v3-flatcontainer/${PACKAGE_ID}/index.json | jq -r '.versions[-1]')
 
           if [ -z "$PACKAGE_VERSION" ]; then
@@ -51,21 +51,21 @@ jobs:
           fi
 
           echo "New version for $PACKAGE_ID: $NEW_VERSION"
-          echo "abstractions_version=$NEW_VERSION" >> $GITHUB_ENV
+          echo "Abstrctions_version=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Update version in WC.Library.BCryptPasswordHash
         run: |
           dotnet build src/WC.Library.BCryptPasswordHash/WC.Library.BCryptPasswordHash.csproj /p:Version=${{ env.bcrypt_version }}
 
-      - name: Update version in WC.Library.BCryptPasswordHash.Abstractions
+      - name: Update version in WC.Library.BCryptPasswordHash.Abstrctions
         run: |
-          dotnet build src/WC.Library.BCryptPasswordHash.Abstractions/WC.Library.BCryptPasswordHash.Abstractions.csproj /p:Version=${{ env.abstractions_version }}
+          dotnet build src/WC.Library.BCryptPasswordHash.Abstrctions/WC.Library.BCryptPasswordHash.Abstrctions.csproj /p:Version=${{ env.Abstrctions_version }}
 
       - name: Build and pack WC.Library.BCryptPasswordHash
         run: dotnet pack src/WC.Library.BCryptPasswordHash/WC.Library.BCryptPasswordHash.csproj -c Release -o ./out
 
-      - name: Build and pack WC.Library.BCryptPasswordHash.Abstractions
-        run: dotnet pack src/WC.Library.BCryptPasswordHash.Abstractions/WC.Library.BCryptPasswordHash.Abstractions.csproj -c Release -o ./out
+      - name: Build and pack WC.Library.BCryptPasswordHash.Abstrctions
+        run: dotnet pack src/WC.Library.BCryptPasswordHash.Abstrctions/WC.Library.BCryptPasswordHash.Abstrctions.csproj -c Release -o ./out
 
       - name: Publish packages to NuGet
         run: dotnet nuget push ./out/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
