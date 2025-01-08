@@ -19,7 +19,40 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Check for changes in project files
+        id: check-changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD)
+
+          # Фильтруем несущественные файлы
+          ESSENTIAL_CHANGES=$(echo "$CHANGED_FILES" | grep -Ev "\.editorconfig$|\.gitignore$|\.yml$|\.sln$|^\.github/")
+
+          echo "Filtered essential changes: $ESSENTIAL_CHANGES"
+
+          # Если нет изменений, ничего не делаем
+          if [ -z "$ESSENTIAL_CHANGES" ]; then
+            echo "No essential changes detected. Skipping publish."
+            echo "should_publish=false" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          # Проверяем изменения в релевантных проектных файлах
+          if echo "$ESSENTIAL_CHANGES" | grep -Eq "src/WC.Library.BCryptPasswordHash|src/WC.Library.BCryptPasswordHash.Abstactions"; then
+            echo "Changes detected in project files."
+            echo "should_publish=true" >> $GITHUB_ENV
+          else
+            echo "No changes detected in relevant project files. Skipping publish."
+            echo "should_publish=false" >> $GITHUB_ENV
+          fi
+
+      - name: Check if we need to continue
+        if: env.should_publish == 'false'
+        run: |
+          echo "No changes detected, skipping version increment and publishing."
+          exit 0
+
       - name: Get latest version for WC.Library.BCryptPasswordHash
+        if: env.should_publish == 'true'
         id: get-version-bcrypt
         run: |
           PACKAGE_ID="wc.library.bcryptpasswordhash"
@@ -37,7 +70,8 @@ jobs:
           echo "bcrypt_version=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Get latest version for WC.Library.BCryptPasswordHash.Abstactions
-        id: get-version-Abstactions
+        if: env.should_publish == 'true'
+        id: get-version-abstractions
         run: |
           PACKAGE_ID="wc.library.bcryptpasswordhash.abstactions"
           PACKAGE_VERSION=$(curl -s https://api.nuget.org/v3-flatcontainer/${PACKAGE_ID}/index.json | jq -r '.versions[-1]')
@@ -51,21 +85,29 @@ jobs:
           fi
 
           echo "New version for $PACKAGE_ID: $NEW_VERSION"
-          echo "Abstactions_version=$NEW_VERSION" >> $GITHUB_ENV
+          echo "abstractions_version=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Update version in WC.Library.BCryptPasswordHash
+        if: env.should_publish == 'true'
         run: |
           dotnet build src/WC.Library.BCryptPasswordHash/WC.Library.BCryptPasswordHash.csproj /p:Version=${{ env.bcrypt_version }}
 
       - name: Update version in WC.Library.BCryptPasswordHash.Abstactions
+        if: env.should_publish == 'true'
         run: |
-          dotnet build src/WC.Library.BCryptPasswordHash.Abstactions/WC.Library.BCryptPasswordHash.Abstactions.csproj /p:Version=${{ env.Abstactions_version }}
+          dotnet build src/WC.Library.BCryptPasswordHash.Abstactions/WC.Library.BCryptPasswordHash.Abstactions.csproj /p:Version=${{ env.abstractions_version }}
 
       - name: Build and pack WC.Library.BCryptPasswordHash
-        run: dotnet pack src/WC.Library.BCryptPasswordHash/WC.Library.BCryptPasswordHash.csproj -c Release -o ./out
+        if: env.should_publish == 'true'
+        run: |
+          dotnet pack src/WC.Library.BCryptPasswordHash/WC.Library.BCryptPasswordHash.csproj -c Release -o ./out
 
       - name: Build and pack WC.Library.BCryptPasswordHash.Abstactions
-        run: dotnet pack src/WC.Library.BCryptPasswordHash.Abstactions/WC.Library.BCryptPasswordHash.Abstactions.csproj -c Release -o ./out
+        if: env.should_publish == 'true'
+        run: |
+          dotnet pack src/WC.Library.BCryptPasswordHash.Abstactions/WC.Library.BCryptPasswordHash.Abstactions.csproj -c Release -o ./out
 
       - name: Publish packages to NuGet
-        run: dotnet nuget push ./out/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        if: env.should_publish == 'true'
+        run: |
+          dotnet nuget push ./out/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
