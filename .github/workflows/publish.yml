@@ -24,6 +24,7 @@ jobs:
         run: |
           if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
             CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+            echo "Changes: CHANGED_FILES"
           else
             CHANGED_FILES=$(git ls-files)
           fi
