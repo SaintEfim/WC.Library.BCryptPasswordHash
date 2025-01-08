@@ -22,23 +22,31 @@ jobs:
       - name: Check for changes in project files
         id: check-changes
         run: |
-          git fetch origin main
+          if git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          else
+            CHANGED_FILES=$(git ls-files)
+          fi
 
-          # Получаем изменённые файлы
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
-          echo "CHANGED_FILES: $CHANGED_FILES"
+          # Фильтруем несущественные файлы
+          ESSENTIAL_CHANGES=$(echo "$CHANGED_FILES" | grep -Ev "\.editorconfig$|\.gitignore$|\.yml$|\.sln$|^\.github/")
 
-          # Фильтруем файлы, относящиеся к проекту
-          ESSENTIAL_CHANGES=$(echo "$CHANGED_FILES" | grep -E "src/WC.Library.BCryptPasswordHash|src/WC.Library.BCryptPasswordHash.Abstactions")
           echo "Filtered essential changes: $ESSENTIAL_CHANGES"
 
+          # Если нет изменений, ничего не делаем
           if [ -z "$ESSENTIAL_CHANGES" ]; then
             echo "No essential changes detected. Skipping publish."
             echo "should_publish=false" >> $GITHUB_ENV
             exit 0
-          else
+          fi
+
+          # Проверяем изменения в релевантных проектных файлах
+          if echo "$ESSENTIAL_CHANGES" | grep -Eq "src/WC.Library.BCryptPasswordHash|src/WC.Library.BCryptPasswordHash.Abstactions"; then
             echo "Changes detected in project files."
             echo "should_publish=true" >> $GITHUB_ENV
+          else
+            echo "No changes detected in relevant project files. Skipping publish."
+            echo "should_publish=false" >> $GITHUB_ENV
           fi
 
       - name: Check if we need to continue
